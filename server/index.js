@@ -66,8 +66,7 @@ io.on('connection', (socket) => {
 
   socket.on('createGame', ({ playerName, numQuestions }) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  
-    // Shuffle and slice questions
+ 
     const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled.slice(0, numQuestions);
   
@@ -85,6 +84,7 @@ io.on('connection', (socket) => {
     socket.emit('gameCreated', roomCode);
     io.to(roomCode).emit('playerList', Object.values(games[roomCode].players));
   });
+  
   
 
 

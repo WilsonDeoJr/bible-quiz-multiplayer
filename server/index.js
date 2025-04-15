@@ -42,11 +42,11 @@ function sendNextQuestion(roomCode) {
 
   const index = game.currentQuestion;
 
-  if (index >= questionSet.length) {
+  if (index >= game.questionSet.length) {
     const finalScores = Object.values(game.players);
     io.to(roomCode).emit('gameOver', finalScores);
     return;
-  }
+  }  
 
   const question = game.questionSet[index];
   io.to(roomCode).emit('newQuestion', {

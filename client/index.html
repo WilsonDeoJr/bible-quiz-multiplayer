@@ -19,6 +19,7 @@
     <div id="optionsBox"></div>
     <h3>Players</h3>
     <ul id="playerList"></ul>
+    <input id="numQuestions" type="number" placeholder="Number of questions" min="1" max="50" />
     <button onclick="startGame()">Start Game (Host Only)</button>
   </div>
 
@@ -27,14 +28,16 @@
     const socket = io('https://bible-quiz-multiplayer.onrender.com');
     let roomCodeGlobal;
 
-    function createGame() {
-      const playerName = document.getElementById('playerName').value;
-      if (!playerName) {
-        alert("Please enter your name.");
-        return;
-     }
-  socket.emit('createGame', playerName);
-  }
+  function createGame() {
+   const playerName = document.getElementById('playerName').value;
+   const numQuestions = parseInt(document.getElementById('numQuestions').value);
+    if (!playerName || isNaN(numQuestions)) {
+     alert("Enter your name and number of questions.");
+    return;
+        }
+  socket.emit('createGame', { playerName, numQuestions });
+    }
+
 
 
     socket.on('gameCreated', (roomCode) => {

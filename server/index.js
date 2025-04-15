@@ -1,7 +1,9 @@
+const allQuestions = require('./questions');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+
 
 const app = express();
 app.use(cors());
@@ -46,7 +48,7 @@ function sendNextQuestion(roomCode) {
     return;
   }
 
-  const question = questionSet[index];
+  const question = game.questionSet[index];
   io.to(roomCode).emit('newQuestion', {
     ...question,
     timer: 10,
@@ -62,19 +64,28 @@ function sendNextQuestion(roomCode) {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on('createGame', (playerName) => {
+  socket.on('createGame', ({ playerName, numQuestions }) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  
+    // Shuffle and slice questions
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, numQuestions);
+  
     games[roomCode] = {
       hostId: socket.id,
       players: {
         [socket.id]: { name: playerName, score: 0 }
       },
-      currentQuestion: 0
+      currentQuestion: 0,
+      questionSet: selectedQuestions,
+      currentAnswers: {}
     };
+  
     socket.join(roomCode);
     socket.emit('gameCreated', roomCode);
     io.to(roomCode).emit('playerList', Object.values(games[roomCode].players));
   });
+  
 
 
   socket.on('joinGame', ({ roomCode, playerName }) => {
@@ -101,7 +112,7 @@ io.on('connection', (socket) => {
     const player = game?.players[socket.id];
     if (!game || !player || game.currentAnswers?.[socket.id]) return;
 
-    const question = questionSet[game.currentQuestion];
+    const question = game.questionSet[game.currentQuestion];
     if (answerIndex === question.correct) {
       player.score += 100;
     }

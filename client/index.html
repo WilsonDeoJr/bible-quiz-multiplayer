@@ -28,8 +28,14 @@
     let roomCodeGlobal;
 
     function createGame() {
-      socket.emit('createGame');
-    }
+      const playerName = document.getElementById('playerName').value;
+      if (!playerName) {
+        alert("Please enter your name.");
+        return;
+     }
+  socket.emit('createGame', playerName);
+  }
+
 
     socket.on('gameCreated', (roomCode) => {
       alert('Game created! Room code: ' + roomCode);

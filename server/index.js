@@ -62,16 +62,20 @@ function sendNextQuestion(roomCode) {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on('createGame', () => {
+  socket.on('createGame', (playerName) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     games[roomCode] = {
       hostId: socket.id,
-      players: {},
+      players: {
+        [socket.id]: { name: playerName, score: 0 }
+      },
       currentQuestion: 0
     };
     socket.join(roomCode);
     socket.emit('gameCreated', roomCode);
+    io.to(roomCode).emit('playerList', Object.values(games[roomCode].players));
   });
+
 
   socket.on('joinGame', ({ roomCode, playerName }) => {
     const game = games[roomCode];

@@ -7,51 +7,64 @@
 <body>
   <h1>Bible Quiz Multiplayer</h1>
 
+  <!-- SETUP PANEL -->
   <div id="setup">
     <h2>Create a Game</h2>
     <input id="playerName" placeholder="Enter Your Name" />
     <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
     <button onclick="createGame()">Create Game</button>
-  
+
     <hr />
-  
+
     <h2>Join a Game</h2>
     <input id="roomCode" placeholder="Enter Room Code" />
     <input id="playerNameJoin" placeholder="Enter Your Name" />
     <button onclick="joinGame()">Join Game</button>
   </div>
-  
 
+  <!-- GAME PANEL -->
   <div id="game" style="display:none;">
     <div id="questionBox"></div>
     <div id="optionsBox"></div>
     <h3>Players</h3>
     <ul id="playerList"></ul>
-    <!-- Optional: remove this input entirely unless you plan to use it for something else -->
-    <!-- Or rename to something unique like: -->
-    <input id="gameNumQuestions" type="number" placeholder="(Unused)" style="display: none;" />
     <button onclick="startGame()">Start Game (Host Only)</button>
   </div>
 
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <script>
-    const socket = io('https://bible-quiz-multiplayer.onrender.com');
+    const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace with your backend if needed
     let roomCodeGlobal;
 
     function createGame() {
-        const playerName = document.getElementById('playerName').value;
-        const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
+      const playerName = document.getElementById('playerName').value;
+      const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
 
-        if (!playerName || isNaN(numQuestions)) {
-            alert("Please enter your name and number of questions.");
-            return;
-  }
+      if (!playerName || isNaN(numQuestions)) {
+        alert("Please enter your name and number of questions.");
+        return;
+      }
 
-  socket.emit('createGame', { playerName, numQuestions });
-}
+      socket.emit('createGame', { playerName, numQuestions });
+    }
 
+    function joinGame() {
+      const roomCode = document.getElementById('roomCode').value.toUpperCase();
+      const playerName = document.getElementById('playerNameJoin').value;
+      if (!roomCode || !playerName) {
+        alert("Enter room code and your name.");
+        return;
+      }
 
+      socket.emit('joinGame', { roomCode, playerName });
+      roomCodeGlobal = roomCode;
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+    }
 
+    function startGame() {
+      socket.emit('startGame', roomCodeGlobal);
+    }
 
     socket.on('gameCreated', (roomCode) => {
       alert('Game created! Room code: ' + roomCode);
@@ -59,16 +72,6 @@
       document.getElementById('setup').style.display = 'none';
       document.getElementById('game').style.display = 'block';
     });
-
-    function joinGame() {
-      const roomCode = document.getElementById('roomCode').value.toUpperCase();
-      const playerName = document.getElementById('playerNameJoin').value;
-      socket.emit('joinGame', { roomCode, playerName });
-      roomCodeGlobal = roomCode;
-      document.getElementById('setup').style.display = 'none';
-      document.getElementById('game').style.display = 'block';
-}
-
 
     socket.on('playerList', (players) => {
       const list = document.getElementById('playerList');
@@ -80,53 +83,48 @@
       });
     });
 
-    function startGame() {
-      socket.emit('startGame', roomCodeGlobal);
-    }
-
     socket.on('newQuestion', (question) => {
-  const questionBox = document.getElementById('questionBox');
-  const optionsBox = document.getElementById('optionsBox');
-  questionBox.textContent = question.text;
-  optionsBox.innerHTML = '';
+      const questionBox = document.getElementById('questionBox');
+      const optionsBox = document.getElementById('optionsBox');
+      questionBox.textContent = question.text;
+      optionsBox.innerHTML = '';
 
-  let timer = question.timer;
-  const timerDisplay = document.createElement('p');
-  timerDisplay.id = 'timer';
-  timerDisplay.textContent = `Time left: ${timer}s`;
-  optionsBox.appendChild(timerDisplay);
+      let timer = question.timer;
+      const timerDisplay = document.createElement('p');
+      timerDisplay.id = 'timer';
+      timerDisplay.textContent = `Time left: ${timer}s`;
+      optionsBox.appendChild(timerDisplay);
 
-  const countdown = setInterval(() => {
-    timer--;
-    timerDisplay.textContent = `Time left: ${timer}s`;
-    if (timer <= 0) clearInterval(countdown);
-  }, 1000);
+      const countdown = setInterval(() => {
+        timer--;
+        timerDisplay.textContent = `Time left: ${timer}s`;
+        if (timer <= 0) clearInterval(countdown);
+      }, 1000);
 
-  question.options.forEach((opt, i) => {
-    const btn = document.createElement('button');
-    btn.textContent = opt;
-    btn.onclick = () => {
-      socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
-    };
-    optionsBox.appendChild(btn);
-  });
-});
+      question.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = () => {
+          socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
+        };
+        optionsBox.appendChild(btn);
+      });
+    });
 
-socket.on('gameOver', (players) => {
-  const questionBox = document.getElementById('questionBox');
-  const optionsBox = document.getElementById('optionsBox');
+    socket.on('gameOver', (players) => {
+      const questionBox = document.getElementById('questionBox');
+      const optionsBox = document.getElementById('optionsBox');
 
-  questionBox.textContent = "🎉 Game Over! Final Scores:";
-  optionsBox.innerHTML = '';
+      questionBox.textContent = "🎉 Game Over! Final Scores:";
+      optionsBox.innerHTML = '';
 
-  players.sort((a, b) => b.score - a.score);
-  players.forEach((p, i) => {
-    const pEl = document.createElement('p');
-    pEl.textContent = `${i + 1}. ${p.name} - ${p.score} pts`;
-    optionsBox.appendChild(pEl);
-  });
-});
-
+      players.sort((a, b) => b.score - a.score);
+      players.forEach((p, i) => {
+        const pEl = document.createElement('p');
+        pEl.textContent = `${i + 1}. ${p.name} - ${p.score} pts`;
+        optionsBox.appendChild(pEl);
+      });
+    });
 
     socket.on('error', (msg) => alert(msg));
   </script>

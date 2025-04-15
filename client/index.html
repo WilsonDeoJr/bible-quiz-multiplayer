@@ -10,7 +10,7 @@
   <div id="setup">
     <h2>Create a Game</h2>
     <input id="playerName" placeholder="Enter Your Name" />
-    <input id="numQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
+    <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
     <button onclick="createGame()">Create Game</button>
   
     <hr />
@@ -27,7 +27,9 @@
     <div id="optionsBox"></div>
     <h3>Players</h3>
     <ul id="playerList"></ul>
-    <input id="numQuestions" type="number" placeholder="Number of questions" min="1" max="50" />
+    <!-- Optional: remove this input entirely unless you plan to use it for something else -->
+    <!-- Or rename to something unique like: -->
+    <input id="gameNumQuestions" type="number" placeholder="(Unused)" style="display: none;" />
     <button onclick="startGame()">Start Game (Host Only)</button>
   </div>
 
@@ -38,7 +40,7 @@
 
     function createGame() {
         const playerName = document.getElementById('playerName').value;
-        const numQuestions = parseInt(document.getElementById('numQuestions').value);
+        const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
 
         if (!playerName || isNaN(numQuestions)) {
             alert("Please enter your name and number of questions.");

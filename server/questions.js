@@ -153,5 +153,5 @@ module.exports = [
     text: "Who offered his only son as a sacrifice, believing God could raise him?",
     options: ["Abraham", "Jacob", "Isaac", "Moses"],
     correct: 0,
-  }
+  },
 ];

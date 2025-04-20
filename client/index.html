@@ -3,24 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <title>Bible Quiz Multiplayer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to bottom right, #2c3e50, #3498db);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .quote {
+      font-style: italic;
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      background: #ffffff10;
+      padding: 20px;
+      border-radius: 15px;
+      width: 280px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+    }
+
+    input {
+      background-color: #fff;
+      color: #333;
+    }
+
+    button {
+      background-color: #f1c40f;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #f39c12;
+    }
+  </style>
 </head>
 <body>
-  <h1>Bible Quiz Multiplayer</h1>
+  <h1>BIBLE QUIZ</h1>
+  <div class="quote">"Your word is a lamp to my feet and a light to my path." - Psalm 119:105</div>
 
-  <!-- SETUP PANEL -->
-  <div id="setup">
-    <h2>Create a Game</h2>
-    <input id="playerName" placeholder="Enter Your Name" />
-    <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
-    <button onclick="createGame()">Create Game</button>
+  <div class="container">
+    <div class="card">
+      <h2>Create Game</h2>
+      <input id="playerName" placeholder="Enter Your Name" />
+      <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
+      <button onclick="createGame()">Create Game</button>
+    </div>
 
-    <hr />
-
-    <h2>Join a Game</h2>
-    <input id="roomCode" placeholder="Enter Room Code" />
-    <input id="playerNameJoin" placeholder="Enter Your Name" />
-    <button onclick="joinGame()">Join Game</button>
-  </div>
+    <div class="card">
+      <h2>Join Game</h2>
+      <input id="roomCode" placeholder="Enter Room Code" />
+      <input id="playerNameJoin" placeholder="Enter Your Name" />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
 
   <!-- GAME PANEL -->
   <div id="game" style="display:none;">

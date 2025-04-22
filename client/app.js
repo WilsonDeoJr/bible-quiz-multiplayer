@@ -22,6 +22,7 @@ function joinGame() {
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
   document.getElementById('game').style.display = 'block';
+  document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 }
 
 function startGame() {
@@ -29,10 +30,11 @@ function startGame() {
 }
 
 socket.on('gameCreated', (roomCode) => {
-  alert('Game created! Room code: ' + roomCode);
+  
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
   document.getElementById('game').style.display = 'block';
+  document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
 socket.on('playerList', (players) => {

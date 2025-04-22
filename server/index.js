@@ -73,18 +73,15 @@ io.on('connection', (socket) => {
 
     // Check if all players answered
     if (Object.keys(game.currentAnswers).length === Object.keys(game.players).length) {
-      const question = game.questionSet[game.currentQuestion];
+       const question = game.questionSet[game.currentQuestion];
+       for (const [id, ans] of Object.entries(game.currentAnswers)) {
+    if (ans === question.correct) {
+      game.players[id].score += 1;
+     }
+   }
 
-      for (const [id, ans] of Object.entries(game.currentAnswers)) {
-        if (ans === question.correct) {
-          game.players[id].score += 1;
-        }
-      }
-
-      // Update live scores to all players
-      io.to(roomCode).emit('updateScores', Object.values(game.players));
-
-      // Move to next question
+    io.to(roomCode).emit('updateScores', Object.values(game.players));
+  // Let the timer from sendNextQuestion handle the transition
       game.currentQuestion += 1;
       game.currentAnswers = {};
       setTimeout(() => sendNextQuestion(roomCode), 1000); // delay next question slightly

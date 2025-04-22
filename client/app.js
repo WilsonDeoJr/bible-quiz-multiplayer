@@ -89,7 +89,17 @@ socket.on('newQuestion', (question) => {
     btn.textContent = opt;
     btn.onclick = () => {
       socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
-    };
+       // Highlight the selected button
+  const allButtons = optionsBox.querySelectorAll('button');
+  allButtons.forEach(b => {
+    b.disabled = true;
+    b.style.opacity = '0.5';
+  });
+
+  btn.style.backgroundColor = '#1abc9c'; // ✅ or green or blue
+  btn.style.color = '#fff';
+  btn.style.opacity = '1';
+  };
     optionsBox.appendChild(btn);
   });
 });

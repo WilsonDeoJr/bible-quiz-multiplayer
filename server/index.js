@@ -127,9 +127,26 @@ function sendNextQuestion(roomCode) {
   const questionToSend = {
     text: question.text,
     options: question.options,
-    correct: null,  // never send correct answer
+    correct: null,
     timer: 10
   };
+
+  game.timer = setTimeout(() => {
+    // Score only players who answered
+    for (const [id, ans] of Object.entries(game.currentAnswers)) {
+      if (ans === question.correct) {
+        game.players[id].score += 1;
+      }
+    }
+
+    // Emit updated scores
+    io.to(roomCode).emit('updateScores', Object.values(game.players));
+
+    // Move to next question
+    game.currentQuestion += 1;
+    game.currentAnswers = {};
+    sendNextQuestion(roomCode);
+  }, 10000); // auto move after 10 seconds
 
   io.to(roomCode).emit('newQuestion', questionToSend);
 }

@@ -93,7 +93,10 @@ io.on('connection', (socket) => {
     if (game) {
       game.players[socket.id] = { name: playerName, score: 0 };
       socket.join(roomCode);
-      io.to(roomCode).emit('playerList', Object.values(game.players));
+      io.to(roomCode).emit('playerList', {
+        players: Object.values(game.players),
+        hostId: game.hostId
+      });
     } else {
       socket.emit('error', 'Game not found.');
     }

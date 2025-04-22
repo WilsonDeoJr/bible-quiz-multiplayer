@@ -1,4 +1,4 @@
-const socket = io('https://bible-quiz-multiplayer.onrender.com'); // 🔁 Replace with your backend URL
+const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Use your actual backend URL
 let roomCodeGlobal;
 
 function createGame() {
@@ -39,8 +39,8 @@ socket.on('gameCreated', (roomCode) => {
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
-socket.on('playerList', (data) => {
-  const { players, hostId } = data;
+// 🔁 Renders the list of players and scores
+function updatePlayerList(players) {
   const list = document.getElementById('playerList');
   list.innerHTML = '';
   players.forEach(p => {
@@ -48,6 +48,11 @@ socket.on('playerList', (data) => {
     li.textContent = `${p.name} - ${p.score} pts`;
     list.appendChild(li);
   });
+}
+
+socket.on('playerList', (data) => {
+  const { players, hostId } = data;
+  updatePlayerList(players);
 
   const startButton = document.getElementById('startGameBtn');
   if (socket.id === hostId) {
@@ -57,6 +62,7 @@ socket.on('playerList', (data) => {
     startButton.style.display = 'none';
   }
 });
+
 socket.on('newQuestion', (question) => {
   const startButton = document.getElementById('startGameBtn');
   if (startButton) startButton.style.display = 'none'; // hide after game starts
@@ -88,17 +94,18 @@ socket.on('newQuestion', (question) => {
   });
 });
 
+// ✅ Keep scores visible when answers are submitted
+socket.on('updateScores', (players) => {
+  updatePlayerList(players);
+});
+
 socket.on('gameOver', (players) => {
   const questionBox = document.getElementById('questionBox');
   const optionsBox = document.getElementById('optionsBox');
   questionBox.textContent = "🎉 Game Over! Final Scores:";
   optionsBox.innerHTML = '';
   players.sort((a, b) => b.score - a.score);
-  players.forEach((p, i) => {
-    const pEl = document.createElement('p');
-    pEl.textContent = `${i + 1}. ${p.name} - ${p.score} pts`;
-    optionsBox.appendChild(pEl);
-  });
+  updatePlayerList(players);
 });
 
 socket.on('error', (msg) => alert(msg));

@@ -1,4 +1,4 @@
-const socket = io('https://bible-quiz-multiplayer.onrender.com');
+const socket = io('https://bible-quiz-multiplayer.onrender.com'); // 🔁 Replace with your backend URL
 let roomCodeGlobal;
 
 function createGame() {
@@ -8,16 +8,19 @@ function createGame() {
     alert("Please enter your name and number of questions.");
     return;
   }
+
   socket.emit('createGame', { playerName, numQuestions });
 }
 
 function joinGame() {
   const roomCode = document.getElementById('roomCode').value.toUpperCase();
   const playerName = document.getElementById('playerNameJoin').value;
+
   if (!roomCode || !playerName) {
     alert("Enter room code and your name.");
     return;
   }
+
   socket.emit('joinGame', { roomCode, playerName });
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
@@ -30,7 +33,6 @@ function startGame() {
 }
 
 socket.on('gameCreated', (roomCode) => {
-
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
   document.getElementById('game').style.display = 'block';
@@ -55,9 +57,10 @@ socket.on('playerList', (data) => {
     startButton.style.display = 'none';
   }
 });
-
-
 socket.on('newQuestion', (question) => {
+  const startButton = document.getElementById('startGameBtn');
+  if (startButton) startButton.style.display = 'none'; // hide after game starts
+
   const questionBox = document.getElementById('questionBox');
   const optionsBox = document.getElementById('optionsBox');
   questionBox.textContent = question.text;

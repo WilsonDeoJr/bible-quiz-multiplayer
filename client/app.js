@@ -1,26 +1,24 @@
-const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Use your actual backend URL
+const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace if needed
 let roomCodeGlobal;
+let hostIdGlobal;
 
 function createGame() {
   const playerName = document.getElementById('playerName').value;
   const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
   if (!playerName || isNaN(numQuestions)) {
-    alert("Please enter your name and number of questions.");
+    alert("Enter your name and number of questions.");
     return;
   }
-
   socket.emit('createGame', { playerName, numQuestions });
 }
 
 function joinGame() {
   const roomCode = document.getElementById('roomCode').value.toUpperCase();
   const playerName = document.getElementById('playerNameJoin').value;
-
   if (!roomCode || !playerName) {
     alert("Enter room code and your name.");
     return;
   }
-
   socket.emit('joinGame', { roomCode, playerName });
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
@@ -39,7 +37,6 @@ socket.on('gameCreated', (roomCode) => {
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
-// 🔁 Renders the list of players and scores
 function updatePlayerList(players) {
   const list = document.getElementById('playerList');
   list.innerHTML = '';
@@ -52,6 +49,7 @@ function updatePlayerList(players) {
 
 socket.on('playerList', (data) => {
   const { players, hostId } = data;
+  hostIdGlobal = hostId;
   updatePlayerList(players);
 
   const startButton = document.getElementById('startGameBtn');
@@ -65,7 +63,7 @@ socket.on('playerList', (data) => {
 
 socket.on('newQuestion', (question) => {
   const startButton = document.getElementById('startGameBtn');
-  if (startButton) startButton.style.display = 'none'; // hide after game starts
+  if (startButton) startButton.style.display = 'none';
 
   const questionBox = document.getElementById('questionBox');
   const optionsBox = document.getElementById('optionsBox');
@@ -89,22 +87,19 @@ socket.on('newQuestion', (question) => {
     btn.textContent = opt;
     btn.onclick = () => {
       socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
-       // Highlight the selected button
-  const allButtons = optionsBox.querySelectorAll('button');
-  allButtons.forEach(b => {
-    b.disabled = true;
-    b.style.opacity = '0.5';
-  });
-
-  btn.style.backgroundColor = '#1abc9c'; // ✅ or green or blue
-  btn.style.color = '#fff';
-  btn.style.opacity = '1';
-  };
+      const allBtns = optionsBox.querySelectorAll('button');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        b.style.opacity = 0.5;
+      });
+      btn.style.backgroundColor = '#1abc9c';
+      btn.style.color = '#fff';
+      btn.style.opacity = 1;
+    };
     optionsBox.appendChild(btn);
   });
 });
 
-// ✅ Keep scores visible when answers are submitted
 socket.on('updateScores', (players) => {
   updatePlayerList(players);
 });
@@ -114,8 +109,25 @@ socket.on('gameOver', (players) => {
   const optionsBox = document.getElementById('optionsBox');
   questionBox.textContent = "🎉 Game Over! Final Scores:";
   optionsBox.innerHTML = '';
+
   players.sort((a, b) => b.score - a.score);
-  updatePlayerList(players);
+  players.forEach((p, i) => {
+    const pEl = document.createElement('p');
+    pEl.textContent = `${i + 1}. ${p.name} - ${p.score} pts`;
+    optionsBox.appendChild(pEl);
+  });
+
+  if (socket.id === hostIdGlobal) {
+    const playAgainBtn = document.createElement('button');
+    playAgainBtn.textContent = '🔁 Play Again';
+    playAgainBtn.onclick = () => {
+      const numQuestions = prompt("Enter number of questions to replay:");
+      if (numQuestions) {
+        socket.emit('playAgain', { roomCode: roomCodeGlobal, numQuestions: parseInt(numQuestions) });
+      }
+    };
+    optionsBox.appendChild(playAgainBtn);
+  }
 });
 
 socket.on('error', (msg) => alert(msg));

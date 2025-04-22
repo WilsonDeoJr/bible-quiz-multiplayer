@@ -8,9 +8,7 @@ const app = express();
 app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-  },
+  cors: { origin: '*' },
 });
 
 const PORT = process.env.PORT || 3000;
@@ -26,9 +24,7 @@ io.on('connection', (socket) => {
 
     games[roomCode] = {
       hostId: socket.id,
-      players: {
-        [socket.id]: { name: playerName, score: 0 },
-      },
+      players: { [socket.id]: { name: playerName, score: 0 } },
       currentQuestion: 0,
       questionSet: selectedQuestions,
       currentAnswers: {},
@@ -42,10 +38,7 @@ io.on('connection', (socket) => {
 
   socket.on('joinGame', ({ roomCode, playerName }) => {
     const game = games[roomCode];
-    if (!game) {
-      socket.emit('error', 'Game not found');
-      return;
-    }
+    if (!game) return socket.emit('error', 'Game not found');
 
     game.players[socket.id] = { name: playerName, score: 0 };
     socket.join(roomCode);
@@ -60,34 +53,44 @@ io.on('connection', (socket) => {
     const game = games[roomCode];
     if (!game) return;
 
-    // Save the player's answer
     game.currentAnswers[socket.id] = answerIndex;
 
-    // Score only when everyone answered early (but don't move to next)
     if (Object.keys(game.currentAnswers).length === Object.keys(game.players).length) {
       const question = game.questionSet[game.currentQuestion];
-
       for (const [id, ans] of Object.entries(game.currentAnswers)) {
         if (ans === question.correct) {
           game.players[id].score += 1;
         }
       }
-
-      // Emit updated scores immediately
       io.to(roomCode).emit('updateScores', Object.values(game.players));
-      // DO NOT call sendNextQuestion here — wait for timer!
     }
+  });
+
+  socket.on('playAgain', ({ roomCode, numQuestions }) => {
+    const game = games[roomCode];
+    if (!game) return;
+
+    // Reset scores
+    for (const player of Object.values(game.players)) {
+      player.score = 0;
+    }
+
+    // Shuffle questions
+    const shuffled = [...questions].sort(() => 0.5 - Math.random());
+    game.questionSet = shuffled.slice(0, numQuestions);
+    game.currentQuestion = 0;
+    game.currentAnswers = {};
+
+    io.to(roomCode).emit('updateScores', Object.values(game.players));
+    sendNextQuestion(roomCode);
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-
     for (const [roomCode, game] of Object.entries(games)) {
       if (game.players[socket.id]) {
         delete game.players[socket.id];
         emitPlayerList(roomCode);
-
-        // Delete game if no players remain
         if (Object.keys(game.players).length === 0) {
           clearTimeout(game.timer);
           delete games[roomCode];
@@ -98,7 +101,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Helper to send player list and host info
 function emitPlayerList(roomCode) {
   const game = games[roomCode];
   if (!game) return;
@@ -113,8 +115,6 @@ function sendNextQuestion(roomCode) {
   if (!game) return;
 
   const index = game.currentQuestion;
-
-  // End game if no more questions
   if (index >= game.questionSet.length) {
     const finalScores = Object.values(game.players);
     io.to(roomCode).emit('gameOver', finalScores);
@@ -125,25 +125,19 @@ function sendNextQuestion(roomCode) {
   const questionToSend = {
     text: question.text,
     options: question.options,
-    correct: null, // never send the correct answer
+    correct: null,
     timer: 10
   };
 
-  // Reset previous answers
   game.currentAnswers = {};
-
-  // Send question
   io.to(roomCode).emit('newQuestion', questionToSend);
 
-  // Setup timer to move to next question after 10 seconds
   game.timer = setTimeout(() => {
-    // Score based on submitted answers (for those who answered)
     for (const [id, ans] of Object.entries(game.currentAnswers)) {
       if (ans === question.correct) {
         game.players[id].score += 1;
       }
     }
-
     io.to(roomCode).emit('updateScores', Object.values(game.players));
     game.currentQuestion += 1;
     sendNextQuestion(roomCode);
@@ -151,5 +145,5 @@ function sendNextQuestion(roomCode) {
 }
 
 server.listen(PORT, () => {
-  console.log(`🟢 Bible Quiz Multiplayer Server is running on port ${PORT}`);
+  console.log(`🟢 Bible Quiz Server running on port ${PORT}`);
 });

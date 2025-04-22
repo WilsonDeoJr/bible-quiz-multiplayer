@@ -118,16 +118,34 @@ socket.on('gameOver', (players) => {
   });
 
   if (socket.id === hostIdGlobal) {
+    // Input for number of questions
+    const label = document.createElement('label');
+    label.textContent = 'Number of questions to replay: ';
+    label.style.display = 'block';
+    label.style.marginTop = '20px';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 1;
+    input.max = 50;
+    input.value = 5;
+    input.style.marginBottom = '10px';
+    input.style.padding = '10px';
+
     const playAgainBtn = document.createElement('button');
     playAgainBtn.textContent = '🔁 Play Again';
     playAgainBtn.onclick = () => {
-      const numQuestions = prompt("Enter number of questions to replay:");
-      if (numQuestions) {
-        socket.emit('playAgain', { roomCode: roomCodeGlobal, numQuestions: parseInt(numQuestions) });
+      const numQuestions = parseInt(input.value);
+      if (!isNaN(numQuestions) && numQuestions > 0) {
+        socket.emit('playAgain', { roomCode: roomCodeGlobal, numQuestions });
       }
     };
+
+    optionsBox.appendChild(label);
+    optionsBox.appendChild(input);
     optionsBox.appendChild(playAgainBtn);
   }
 });
+
 
 socket.on('error', (msg) => alert(msg));

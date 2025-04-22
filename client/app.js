@@ -30,14 +30,15 @@ function startGame() {
 }
 
 socket.on('gameCreated', (roomCode) => {
-  
+
   roomCodeGlobal = roomCode;
   document.getElementById('setup').style.display = 'none';
   document.getElementById('game').style.display = 'block';
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
-socket.on('playerList', (players) => {
+socket.on('playerList', (data) => {
+  const { players, hostId } = data;
   const list = document.getElementById('playerList');
   list.innerHTML = '';
   players.forEach(p => {
@@ -45,7 +46,16 @@ socket.on('playerList', (players) => {
     li.textContent = `${p.name} - ${p.score} pts`;
     list.appendChild(li);
   });
+
+  const startButton = document.getElementById('startGameBtn');
+  if (socket.id === hostId) {
+    startButton.style.display = 'inline-block';
+    startButton.textContent = 'Start Game (Host Only)';
+  } else {
+    startButton.style.display = 'none';
+  }
 });
+
 
 socket.on('newQuestion', (question) => {
   const questionBox = document.getElementById('questionBox');

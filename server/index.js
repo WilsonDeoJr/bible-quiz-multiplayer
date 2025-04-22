@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const questions = require('./questions'); // make sure this file exists and is in the same directory
+const questions = require('./questions');
 
 const app = express();
 app.use(cors());
@@ -14,7 +14,6 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-
 const games = {};
 
 io.on('connection', (socket) => {
@@ -22,27 +21,23 @@ io.on('connection', (socket) => {
 
   socket.on('createGame', ({ playerName, numQuestions }) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
     const shuffled = [...questions].sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled.slice(0, numQuestions);
 
     games[roomCode] = {
       hostId: socket.id,
       players: {
-        [socket.id]: { name: playerName, score: 0 }
+        [socket.id]: { name: playerName, score: 0 },
       },
       currentQuestion: 0,
       questionSet: selectedQuestions,
-      currentAnswers: {}
+      currentAnswers: {},
+      timer: null
     };
 
     socket.join(roomCode);
     socket.emit('gameCreated', roomCode);
-
-    io.to(roomCode).emit('playerList', {
-      players: Object.values(games[roomCode].players),
-      hostId: games[roomCode].hostId
-    });
+    emitPlayerList(roomCode);
   });
 
   socket.on('joinGame', ({ roomCode, playerName }) => {
@@ -54,11 +49,7 @@ io.on('connection', (socket) => {
 
     game.players[socket.id] = { name: playerName, score: 0 };
     socket.join(roomCode);
-
-    io.to(roomCode).emit('playerList', {
-      players: Object.values(game.players),
-      hostId: game.hostId
-    });
+    emitPlayerList(roomCode);
   });
 
   socket.on('startGame', (roomCode) => {
@@ -69,38 +60,36 @@ io.on('connection', (socket) => {
     const game = games[roomCode];
     if (!game) return;
 
+    // Save the player's answer
     game.currentAnswers[socket.id] = answerIndex;
 
-    // Check if all players answered
+    // Score only when everyone answered early (but don't move to next)
     if (Object.keys(game.currentAnswers).length === Object.keys(game.players).length) {
-       const question = game.questionSet[game.currentQuestion];
-       for (const [id, ans] of Object.entries(game.currentAnswers)) {
-    if (ans === question.correct) {
-      game.players[id].score += 1;
-     }
-   }
+      const question = game.questionSet[game.currentQuestion];
 
-    io.to(roomCode).emit('updateScores', Object.values(game.players));
-  // Let the timer from sendNextQuestion handle the transition
-      game.currentQuestion += 1;
-      game.currentAnswers = {};
-      setTimeout(() => sendNextQuestion(roomCode), 1000); // delay next question slightly
+      for (const [id, ans] of Object.entries(game.currentAnswers)) {
+        if (ans === question.correct) {
+          game.players[id].score += 1;
+        }
+      }
+
+      // Emit updated scores immediately
+      io.to(roomCode).emit('updateScores', Object.values(game.players));
+      // DO NOT call sendNextQuestion here — wait for timer!
     }
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+
     for (const [roomCode, game] of Object.entries(games)) {
       if (game.players[socket.id]) {
         delete game.players[socket.id];
+        emitPlayerList(roomCode);
 
-        io.to(roomCode).emit('playerList', {
-          players: Object.values(game.players),
-          hostId: game.hostId
-        });
-
-        // Optional: delete empty games
+        // Delete game if no players remain
         if (Object.keys(game.players).length === 0) {
+          clearTimeout(game.timer);
           delete games[roomCode];
         }
         break;
@@ -109,11 +98,23 @@ io.on('connection', (socket) => {
   });
 });
 
+// Helper to send player list and host info
+function emitPlayerList(roomCode) {
+  const game = games[roomCode];
+  if (!game) return;
+  io.to(roomCode).emit('playerList', {
+    players: Object.values(game.players),
+    hostId: game.hostId
+  });
+}
+
 function sendNextQuestion(roomCode) {
   const game = games[roomCode];
   if (!game) return;
 
   const index = game.currentQuestion;
+
+  // End game if no more questions
   if (index >= game.questionSet.length) {
     const finalScores = Object.values(game.players);
     io.to(roomCode).emit('gameOver', finalScores);
@@ -124,28 +125,29 @@ function sendNextQuestion(roomCode) {
   const questionToSend = {
     text: question.text,
     options: question.options,
-    correct: null,
+    correct: null, // never send the correct answer
     timer: 10
   };
 
+  // Reset previous answers
+  game.currentAnswers = {};
+
+  // Send question
+  io.to(roomCode).emit('newQuestion', questionToSend);
+
+  // Setup timer to move to next question after 10 seconds
   game.timer = setTimeout(() => {
-    // Score only players who answered
+    // Score based on submitted answers (for those who answered)
     for (const [id, ans] of Object.entries(game.currentAnswers)) {
       if (ans === question.correct) {
         game.players[id].score += 1;
       }
     }
 
-    // Emit updated scores
     io.to(roomCode).emit('updateScores', Object.values(game.players));
-
-    // Move to next question
     game.currentQuestion += 1;
-    game.currentAnswers = {};
     sendNextQuestion(roomCode);
-  }, 10000); // auto move after 10 seconds
-
-  io.to(roomCode).emit('newQuestion', questionToSend);
+  }, 10000);
 }
 
 server.listen(PORT, () => {

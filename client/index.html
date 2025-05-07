@@ -2,91 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Bible Quiz Game</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #333;
-    }
-
-    input, select, button {
-      margin: 10px;
-      padding: 10px;
-      font-size: 1em;
-    }
-
-    #mainMenu, #hostForm, #joinForm, #gameArea {
-      margin-top: 30px;
-    }
-
-    #gameArea {
-      display: none;
-    }
-
-    #optionsBox button {
-      display: block;
-      margin: 10px auto;
-      padding: 10px;
-      width: 60%;
-      font-size: 1em;
-    }
-  </style>
+  <title>Bible Quiz Multiplayer</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <h1>BIBLE QUIZ</h1>
+  <div class="quote">"Your word is a lamp to my feet and a light to my path." - Psalm 119:105</div>
 
-  <div id="mainMenu">
-    <h1>🎮 Bible Quiz Game</h1>
-    <button onclick="showCreateForm()">Create Game</button>
-    <button onclick="showJoinForm()">Join Game</button>
+  <div class="container" id="setup">
+    <div class="card">
+      <h2>Create Game</h2>
+      <input id="playerName" placeholder="Enter Your Name" />
+      <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
+      <button onclick="createGame()">Create Game</button>
+    </div>
+
+    <div class="card">
+      <h2>Join Game</h2>
+      <input id="roomCode" placeholder="Enter Room Code" />
+      <input id="playerNameJoin" placeholder="Enter Your Name" />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
   </div>
 
-  <div id="hostForm" style="display:none;">
-    <h2>Create Game</h2>
-    <input type="text" id="hostName" placeholder="Your Name">
-    <select id="categorySelect">
-      <option value="all">All Categories</option>
-      <option value="faith">Faith Heroes</option>
-      <option value="prophets">Prophets</option>
-    </select>
-    <input type="number" id="questionCount" placeholder="Number of Questions" min="1" max="50">
-    <button onclick="createGame()">Start Game</button>
-  </div>
-
-  <div id="joinForm" style="display:none;">
-    <h2>Join Game</h2>
-    <input type="text" id="playerName" placeholder="Your Name">
-    <input type="text" id="roomCodeInput" placeholder="Enter Room Code">
-    <button onclick="joinGame()">Join</button>
-  </div>
-
-  <div id="gameArea">
+  <!-- GAME PANEL -->
+  <div id="game" style="display:none;">
     <h2 id="roomDisplay"></h2>
-    <div id="playerList"></div>
     <div id="questionBox"></div>
     <div id="optionsBox"></div>
-    <div id="timerDisplay"></div>
-    <button id="startGameBtn" style="display:none;" onclick="startGame()">Start Game (Host Only)</button>
+    <h3>Players</h3>
+    <ul id="playerList"></ul>
+    <button id="startGameBtn" onclick="startGame()">Start Game</button>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <script src="app.js"></script>
-  <script>
-    function showCreateForm() {
-      document.getElementById('mainMenu').style.display = 'none';
-      document.getElementById('hostForm').style.display = 'block';
-    }
-
-    function showJoinForm() {
-      document.getElementById('mainMenu').style.display = 'none';
-      document.getElementById('joinForm').style.display = 'block';
-    }
-  </script>
-
 </body>
 </html>

@@ -1,89 +1,151 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const questionContainer = document.getElementById("question-container");
-  const questionText = document.getElementById("question");
-  const answerButtons = document.getElementById("answer-buttons");
-  const scoreDisplay = document.getElementById("score");
-  const playAgainBtn = document.getElementById("play-again-btn");
-  const categorySelect = document.getElementById("category-select");
+const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace if needed
+let roomCodeGlobal;
+let hostIdGlobal;
 
-  let currentQuestionIndex = 0;
-  let score = 0;
-  let availableQuestions = [];
-  let usedQuestions = [];
-  let selectedCategory = "all";
-
-  async function loadQuestions() {
-    const response = await fetch("questions.json");
-    const data = await response.json();
-    allQuestions = data;
-    filterQuestionsByCategory();
+function createGame() {
+  const playerName = document.getElementById('playerName').value;
+  const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
+  if (!playerName || isNaN(numQuestions)) {
+    alert("Enter your name and number of questions.");
+    return;
   }
+  socket.emit('createGame', { playerName, numQuestions });
+}
 
-  function filterQuestionsByCategory() {
-    if (selectedCategory === "all") {
-      availableQuestions = [...allQuestions];
-    } else {
-      availableQuestions = allQuestions.filter(q => q.category === selectedCategory);
-    }
-    usedQuestions = [];
-    score = 0;
-    updateScore();
-    showNextQuestion();
+function joinGame() {
+  const roomCode = document.getElementById('roomCode').value.toUpperCase();
+  const playerName = document.getElementById('playerNameJoin').value;
+  if (!roomCode || !playerName) {
+    alert("Enter room code and your name.");
+    return;
   }
+  socket.emit('joinGame', { roomCode, playerName });
+  roomCodeGlobal = roomCode;
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
+}
 
-  function showNextQuestion() {
-    if (availableQuestions.length === 0) {
-      questionText.textContent = "Congratulations! You've completed all questions.";
-      answerButtons.innerHTML = "";
-      playAgainBtn.classList.remove("hide");
-      return;
-    }
+function startGame() {
+  socket.emit('startGame', roomCodeGlobal);
+}
 
-    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-    const question = availableQuestions[randomIndex];
-    usedQuestions.push(question);
-    availableQuestions.splice(randomIndex, 1);
-    displayQuestion(question);
-  }
-
-  function displayQuestion(question) {
-    questionText.textContent = question.question;
-    answerButtons.innerHTML = "";
-
-    question.choices.forEach((choice) => {
-      const button = document.createElement("button");
-      button.textContent = choice;
-      button.classList.add("btn");
-      button.addEventListener("click", () => selectAnswer(choice, question.answer));
-      answerButtons.appendChild(button);
-    });
-  }
-
-  function selectAnswer(selected, correct) {
-    if (selected === correct) {
-      score++;
-      updateScore();
-      showNextQuestion();
-    } else {
-      score = 0;
-      usedQuestions = [];
-      filterQuestionsByCategory();
-    }
-  }
-
-  function updateScore() {
-    scoreDisplay.textContent = `Score: ${score}`;
-  }
-
-  playAgainBtn.addEventListener("click", () => {
-    playAgainBtn.classList.add("hide");
-    filterQuestionsByCategory();
-  });
-
-  categorySelect.addEventListener("change", () => {
-    selectedCategory = categorySelect.value;
-    filterQuestionsByCategory();
-  });
-
-  loadQuestions();
+socket.on('gameCreated', (roomCode) => {
+  roomCodeGlobal = roomCode;
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
+
+function updatePlayerList(players) {
+  const list = document.getElementById('playerList');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.name} - ${p.score} pts`;
+    list.appendChild(li);
+  });
+}
+
+socket.on('playerList', (data) => {
+  const { players, hostId } = data;
+  hostIdGlobal = hostId;
+  updatePlayerList(players);
+
+  const startButton = document.getElementById('startGameBtn');
+  if (socket.id === hostId) {
+    startButton.style.display = 'inline-block';
+    startButton.textContent = 'Start Game (Host Only)';
+  } else {
+    startButton.style.display = 'none';
+  }
+});
+
+socket.on('newQuestion', (question) => {
+  const startButton = document.getElementById('startGameBtn');
+  if (startButton) startButton.style.display = 'none';
+
+  const questionBox = document.getElementById('questionBox');
+  const optionsBox = document.getElementById('optionsBox');
+  questionBox.textContent = question.text;
+  optionsBox.innerHTML = '';
+
+  let timer = question.timer;
+  const timerDisplay = document.createElement('p');
+  timerDisplay.id = 'timer';
+  timerDisplay.textContent = `Time left: ${timer}s`;
+  optionsBox.appendChild(timerDisplay);
+
+  const countdown = setInterval(() => {
+    timer--;
+    timerDisplay.textContent = `Time left: ${timer}s`;
+    if (timer <= 0) clearInterval(countdown);
+  }, 1000);
+
+  question.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = opt;
+    btn.onclick = () => {
+      socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
+      const allBtns = optionsBox.querySelectorAll('button');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        b.style.opacity = 0.5;
+      });
+      btn.style.backgroundColor = '#1abc9c';
+      btn.style.color = '#fff';
+      btn.style.opacity = 1;
+    };
+    optionsBox.appendChild(btn);
+  });
+});
+
+socket.on('updateScores', (players) => {
+  updatePlayerList(players);
+});
+
+socket.on('gameOver', (players) => {
+  const questionBox = document.getElementById('questionBox');
+  const optionsBox = document.getElementById('optionsBox');
+  questionBox.textContent = "🎉 Game Over! Final Scores:";
+  optionsBox.innerHTML = '';
+
+  players.sort((a, b) => b.score - a.score);
+  players.forEach((p, i) => {
+    const pEl = document.createElement('p');
+    pEl.textContent = `${i + 1}. ${p.name} - ${p.score} pts`;
+    optionsBox.appendChild(pEl);
+  });
+
+  if (socket.id === hostIdGlobal) {
+    // Input for number of questions
+    const label = document.createElement('label');
+    label.textContent = 'Number of questions to replay: ';
+    label.style.display = 'block';
+    label.style.marginTop = '20px';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 1;
+    input.max = 50;
+    input.value = 5;
+    input.style.marginBottom = '10px';
+    input.style.padding = '10px';
+
+    const playAgainBtn = document.createElement('button');
+    playAgainBtn.textContent = '🔁 Play Again';
+    playAgainBtn.onclick = () => {
+      const numQuestions = parseInt(input.value);
+      if (!isNaN(numQuestions) && numQuestions > 0) {
+        socket.emit('playAgain', { roomCode: roomCodeGlobal, numQuestions });
+      }
+    };
+
+    optionsBox.appendChild(label);
+    optionsBox.appendChild(input);
+    optionsBox.appendChild(playAgainBtn);
+  }
+});
+
+
+socket.on('error', (msg) => alert(msg));

@@ -3,117 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <title>Bible Quiz Multiplayer</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
+      font-family: Arial, sans-serif;
       background: linear-gradient(to bottom right, #2c3e50, #3498db);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      color: white;
+      text-align: center;
+      margin: 0;
       padding: 20px;
-      min-height: 100vh;
     }
-
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+    .container {
+      max-width: 500px;
+      margin: auto;
     }
-
-    .card, .menu, .game {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      margin: 10px;
-      width: 280px;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: none;
-      font-size: 1rem;
-    }
-
-    input {
-      background-color: #fff;
-      color: #333;
-    }
-
-    button {
-      background-color: #f1c40f;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #f39c12;
-    }
-
-    #game, #createForm, #joinForm {
+    .hidden {
       display: none;
     }
-
-    ul {
-      padding: 0;
-      list-style: none;
+    input, button {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      background-color: #f1c40f;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #f39c12;
     }
   </style>
 </head>
 <body>
-  <h1>BIBLE QUIZ</h1>
-  <div class="quote">"Your word is a lamp to my feet and a light to my path." - Psalm 119:105</div>
+  <div class="container">
+    <h1>🎮 Bible Quiz</h1>
 
-  <!-- MAIN MENU -->
-  <div id="mainMenu" class="menu">
-    <button onclick="showCreate()">Create Game</button>
-    <button onclick="showJoin()">Join Game</button>
-  </div>
+    <!-- Main Menu -->
+    <div id="mainMenu">
+      <button onclick="showCreateForm()">Create Game</button>
+      <button onclick="showJoinForm()">Join Game</button>
+    </div>
 
-  <!-- CREATE GAME FORM -->
-  <div id="createForm" class="card">
-    <h2>Create Game</h2>
-    <input id="playerName" placeholder="Your Name" />
-    <input id="createNumQuestions" type="number" min="1" max="50" placeholder="Number of Questions" />
-    <button onclick="createGame()">Start Game</button>
-  </div>
+    <!-- Create Game Form -->
+    <div id="createForm" class="hidden">
+      <h2>Create Game</h2>
+      <input id="playerName" placeholder="Your Name" />
+      <input id="createNumQuestions" type="number" placeholder="Number of Questions" min="1" max="50" />
+      <button onclick="createGame()">Start Game</button>
+    </div>
 
-  <!-- JOIN GAME FORM -->
-  <div id="joinForm" class="card">
-    <h2>Join Game</h2>
-    <input id="roomCode" placeholder="Room Code" />
-    <input id="playerNameJoin" placeholder="Your Name" />
-    <button onclick="joinGame()">Join Game</button>
-  </div>
+    <!-- Join Game Form -->
+    <div id="joinForm" class="hidden">
+      <h2>Join Game</h2>
+      <input id="roomCode" placeholder="Room Code" />
+      <input id="playerNameJoin" placeholder="Your Name" />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
 
-  <!-- GAME AREA -->
-  <div id="game" class="game">
-    <h2 id="roomDisplay"></h2>
-    <div id="questionBox"></div>
-    <div id="optionsBox"></div>
-    <h3>Players</h3>
-    <ul id="playerList"></ul>
-    <button id="startGameBtn" onclick="startGame()" style="display:none;">Start Game (Host Only)</button>
+    <!-- Game Area -->
+    <div id="game" class="hidden">
+      <h2 id="roomDisplay">Room Code: </h2>
+      <div id="questionBox"></div>
+      <div id="optionsBox"></div>
+      <h3>Players</h3>
+      <ul id="playerList"></ul>
+      <button id="startGameBtn" onclick="startGame()" style="display:none;">Start Game (Host Only)</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
   <script>
-    function showCreate() {
-      document.getElementById('mainMenu').style.display = 'none';
-      document.getElementById('createForm').style.display = 'block';
+    function showCreateForm() {
+      document.getElementById('mainMenu').classList.add('hidden');
+      document.getElementById('createForm').classList.remove('hidden');
     }
 
-    function showJoin() {
-      document.getElementById('mainMenu').style.display = 'none';
-      document.getElementById('joinForm').style.display = 'block';
+    function showJoinForm() {
+      document.getElementById('mainMenu').classList.add('hidden');
+      document.getElementById('joinForm').classList.remove('hidden');
     }
   </script>
 </body>

@@ -1,4 +1,4 @@
-const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace with your server if needed
+const socket = io(); // Use your full backend URL if hosted elsewhere
 let roomCodeGlobal;
 let hostIdGlobal;
 
@@ -25,9 +25,8 @@ function joinGame() {
 
   socket.emit('joinGame', { roomCode, playerName });
   roomCodeGlobal = roomCode;
-  document.getElementById('createForm').style.display = 'none';
-  document.getElementById('joinForm').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
+  document.getElementById('joinForm').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 }
 
@@ -36,9 +35,10 @@ function startGame() {
 }
 
 socket.on('gameCreated', (roomCode) => {
+  console.log("Room created:", roomCode);
   roomCodeGlobal = roomCode;
-  document.getElementById('createForm').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
+  document.getElementById('createForm').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
@@ -55,7 +55,6 @@ socket.on('playerList', ({ players, hostId }) => {
   const startBtn = document.getElementById('startGameBtn');
   if (socket.id === hostId) {
     startBtn.style.display = 'inline-block';
-    startBtn.textContent = 'Start Game (Host Only)';
   } else {
     startBtn.style.display = 'none';
   }
@@ -126,10 +125,6 @@ socket.on('gameOver', (players) => {
   });
 
   if (socket.id === hostIdGlobal) {
-    const label = document.createElement('label');
-    label.textContent = 'Play again with how many questions?';
-    label.style.display = 'block';
-
     const input = document.createElement('input');
     input.type = 'number';
     input.min = 1;
@@ -146,7 +141,6 @@ socket.on('gameOver', (players) => {
       }
     };
 
-    optionsBox.appendChild(label);
     optionsBox.appendChild(input);
     optionsBox.appendChild(playAgainBtn);
   }

@@ -2,20 +2,21 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const questions = require('./questions');
+const questions = require('./questions'); // Make sure this file exists and exports an array
 
 const app = express();
 app.use(cors());
+
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' },
+  cors: { origin: '*' }
 });
 
 const PORT = process.env.PORT || 3000;
 const games = {};
 
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  console.log('User connected:', socket.id);
 
   socket.on('createGame', ({ playerName, numQuestions }) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -24,7 +25,9 @@ io.on('connection', (socket) => {
 
     games[roomCode] = {
       hostId: socket.id,
-      players: { [socket.id]: { name: playerName, score: 0 } },
+      players: {
+        [socket.id]: { name: playerName, score: 0 }
+      },
       currentQuestion: 0,
       questionSet: selectedQuestions,
       currentAnswers: {},
@@ -32,13 +35,16 @@ io.on('connection', (socket) => {
     };
 
     socket.join(roomCode);
-    socket.emit('gameCreated', roomCode);
+    socket.emit('gameCreated', roomCode); // ✅ Sends room to frontend
     emitPlayerList(roomCode);
   });
 
   socket.on('joinGame', ({ roomCode, playerName }) => {
     const game = games[roomCode];
-    if (!game) return socket.emit('error', 'Game not found');
+    if (!game) {
+      socket.emit('error', 'Game not found');
+      return;
+    }
 
     game.players[socket.id] = { name: playerName, score: 0 };
     socket.join(roomCode);
@@ -62,6 +68,7 @@ io.on('connection', (socket) => {
           game.players[id].score += 1;
         }
       }
+
       io.to(roomCode).emit('updateScores', Object.values(game.players));
     }
   });
@@ -70,12 +77,10 @@ io.on('connection', (socket) => {
     const game = games[roomCode];
     if (!game) return;
 
-    // Reset scores
     for (const player of Object.values(game.players)) {
       player.score = 0;
     }
 
-    // Shuffle questions
     const shuffled = [...questions].sort(() => 0.5 - Math.random());
     game.questionSet = shuffled.slice(0, numQuestions);
     game.currentQuestion = 0;
@@ -87,10 +92,12 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+
     for (const [roomCode, game] of Object.entries(games)) {
       if (game.players[socket.id]) {
         delete game.players[socket.id];
         emitPlayerList(roomCode);
+
         if (Object.keys(game.players).length === 0) {
           clearTimeout(game.timer);
           delete games[roomCode];
@@ -104,6 +111,7 @@ io.on('connection', (socket) => {
 function emitPlayerList(roomCode) {
   const game = games[roomCode];
   if (!game) return;
+
   io.to(roomCode).emit('playerList', {
     players: Object.values(game.players),
     hostId: game.hostId
@@ -115,6 +123,7 @@ function sendNextQuestion(roomCode) {
   if (!game) return;
 
   const index = game.currentQuestion;
+
   if (index >= game.questionSet.length) {
     const finalScores = Object.values(game.players);
     io.to(roomCode).emit('gameOver', finalScores);
@@ -138,6 +147,7 @@ function sendNextQuestion(roomCode) {
         game.players[id].score += 1;
       }
     }
+
     io.to(roomCode).emit('updateScores', Object.values(game.players));
     game.currentQuestion += 1;
     sendNextQuestion(roomCode);
@@ -145,5 +155,5 @@ function sendNextQuestion(roomCode) {
 }
 
 server.listen(PORT, () => {
-  console.log(`🟢 Bible Quiz Server running on port ${PORT}`);
+  console.log(`✅ Bible Quiz Server is running on port ${PORT}`);
 });

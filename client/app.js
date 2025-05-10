@@ -1,27 +1,32 @@
-const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace if needed
+const socket = io('https://bible-quiz-multiplayer.onrender.com'); // Replace with your server if needed
 let roomCodeGlobal;
 let hostIdGlobal;
 
 function createGame() {
   const playerName = document.getElementById('playerName').value;
   const numQuestions = parseInt(document.getElementById('createNumQuestions').value);
-  if (!playerName || isNaN(numQuestions)) {
-    alert("Enter your name and number of questions.");
+
+  if (!playerName || isNaN(numQuestions) || numQuestions <= 0) {
+    alert("Please enter your name and number of questions.");
     return;
   }
+
   socket.emit('createGame', { playerName, numQuestions });
 }
 
 function joinGame() {
-  const roomCode = document.getElementById('roomCode').value.toUpperCase();
+  const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
   const playerName = document.getElementById('playerNameJoin').value;
+
   if (!roomCode || !playerName) {
     alert("Enter room code and your name.");
     return;
   }
+
   socket.emit('joinGame', { roomCode, playerName });
   roomCodeGlobal = roomCode;
-  document.getElementById('setup').style.display = 'none';
+  document.getElementById('createForm').style.display = 'none';
+  document.getElementById('joinForm').style.display = 'none';
   document.getElementById('game').style.display = 'block';
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 }
@@ -32,12 +37,13 @@ function startGame() {
 
 socket.on('gameCreated', (roomCode) => {
   roomCodeGlobal = roomCode;
-  document.getElementById('setup').style.display = 'none';
+  document.getElementById('createForm').style.display = 'none';
   document.getElementById('game').style.display = 'block';
   document.getElementById('roomDisplay').textContent = 'Room Code: ' + roomCode;
 });
 
-function updatePlayerList(players) {
+socket.on('playerList', ({ players, hostId }) => {
+  hostIdGlobal = hostId;
   const list = document.getElementById('playerList');
   list.innerHTML = '';
   players.forEach(p => {
@@ -45,25 +51,19 @@ function updatePlayerList(players) {
     li.textContent = `${p.name} - ${p.score} pts`;
     list.appendChild(li);
   });
-}
 
-socket.on('playerList', (data) => {
-  const { players, hostId } = data;
-  hostIdGlobal = hostId;
-  updatePlayerList(players);
-
-  const startButton = document.getElementById('startGameBtn');
+  const startBtn = document.getElementById('startGameBtn');
   if (socket.id === hostId) {
-    startButton.style.display = 'inline-block';
-    startButton.textContent = 'Start Game (Host Only)';
+    startBtn.style.display = 'inline-block';
+    startBtn.textContent = 'Start Game (Host Only)';
   } else {
-    startButton.style.display = 'none';
+    startBtn.style.display = 'none';
   }
 });
 
 socket.on('newQuestion', (question) => {
-  const startButton = document.getElementById('startGameBtn');
-  if (startButton) startButton.style.display = 'none';
+  const startBtn = document.getElementById('startGameBtn');
+  if (startBtn) startBtn.style.display = 'none';
 
   const questionBox = document.getElementById('questionBox');
   const optionsBox = document.getElementById('optionsBox');
@@ -87,11 +87,13 @@ socket.on('newQuestion', (question) => {
     btn.textContent = opt;
     btn.onclick = () => {
       socket.emit('submitAnswer', { roomCode: roomCodeGlobal, answerIndex: i });
+
       const allBtns = optionsBox.querySelectorAll('button');
       allBtns.forEach(b => {
         b.disabled = true;
         b.style.opacity = 0.5;
       });
+
       btn.style.backgroundColor = '#1abc9c';
       btn.style.color = '#fff';
       btn.style.opacity = 1;
@@ -101,7 +103,13 @@ socket.on('newQuestion', (question) => {
 });
 
 socket.on('updateScores', (players) => {
-  updatePlayerList(players);
+  const list = document.getElementById('playerList');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.name} - ${p.score} pts`;
+    list.appendChild(li);
+  });
 });
 
 socket.on('gameOver', (players) => {
@@ -118,19 +126,16 @@ socket.on('gameOver', (players) => {
   });
 
   if (socket.id === hostIdGlobal) {
-    // Input for number of questions
     const label = document.createElement('label');
-    label.textContent = 'Number of questions to replay: ';
+    label.textContent = 'Play again with how many questions?';
     label.style.display = 'block';
-    label.style.marginTop = '20px';
 
     const input = document.createElement('input');
     input.type = 'number';
     input.min = 1;
     input.max = 50;
     input.value = 5;
-    input.style.marginBottom = '10px';
-    input.style.padding = '10px';
+    input.style.margin = '10px';
 
     const playAgainBtn = document.createElement('button');
     playAgainBtn.textContent = '🔁 Play Again';
@@ -147,5 +152,6 @@ socket.on('gameOver', (players) => {
   }
 });
 
-
-socket.on('error', (msg) => alert(msg));
+socket.on('error', (msg) => {
+  alert(msg);
+});
